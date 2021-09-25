@@ -1,0 +1,28 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+%matplotlib inline
+df=pd.read_csv('kc_house_data.csv')
+#df.isnull().sum()
+#chet how much data is missisng
+df.describe().transpose()
+#how to see histogram of the Price
+plt.figure(figsize=(10,6))
+sns.distplot(df['price'])
+#to check how many bedrooms we have 
+sns.countplot(df['bedrooms'])
+#inscatter to seee price change related to area of teh house
+plt.figure(figsize=(10,6))
+sns.scatterplot(x='price', y='sqft_living', data=df)
+#in boxplot to know price range related to bedroom Size
+plt.figure(figsize=(10,6))
+sns.boxplot(x='bedrooms', y='price', data=df)
+#to get to know the first 1 percent of the high prices
+df.sort_values('price', ascending=False).head(20)
+#get rid of the first 1 % off data to get more clear values
+non_top_1_pewrc=df.sort_values('price', ascending=False).iloc[216:]
+#Seing more clearly the price comparisoon related to latitute and longtitue
+sns.scatterplot(x='long', y='lat', data=non_top_1_pewrc, hue='price', palette='RdYlGn', edgecolor=None, alpha=0.2, )
+#check the comparisment of the price of houses
+sns.boxplot(x='waterfront', y='price', data=df)
