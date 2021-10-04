@@ -1,0 +1,51 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+df=pd.read_csv('../mahammad.yagubli/lending_club_loan_two.csv')
+df.corr()
+sns.scatterplot(x='installment', y='loan_amnt', data=df)
+sns.barplot( x='home_ownership', y='loan_amnt', data=df )
+df.columns
+df['load_repaid']=df['loan_status'].apply(lambda x: '1' if x=='Fully Paid' else '0')
+df.drop('loan_status', axis=1) 
+len(df)
+100*df.isnull().sum()/len(df)
+df['emp_title'].uniquee()
+df['emp_title'].value_counts()
+df=df.drop('emp_title', axis=1)
+sorted(df['emp_length'].dropna().unique())
+sorted_list=['< 1 year',  
+  '1 year'
+ '2 years',
+ '3 years',
+ '4 years',
+ '5 years',
+ '6 years',
+ '7 years',
+ '8 years',
+ '9 years',
+ '10+ years' 
+ ]
+sns.countplot(x='emp_length',  data=df, order=sorted_list, hue='load_repaid' )
+df['purpose'].unique()
+df['title'].unique()
+df=df.drop('title', axis=1)
+df['mort_acc'].value_counts()
+df.corr()['mort_acc']
+needed=df.groupby('total_acc').mean()['mort_acc'] 
+def getneedeedvalue(total_acc, mort_acc):
+    if(np.isnan(mort_acc)):
+        return needed[total_acc]
+    else:
+        return mort_acc
+df['mort_acc']=df.apply(lambda x: getneedeedvalue(x['total_acc'],x['mort_acc']   ),axis=1     )
+df.isnull().sum()
+df=df.drop('emp_length', axis=1)
+df=df.dropna()
+df.isnull().sum()
+df.select_dtypes(['object']).columns
+def number_getter(value):
+    return value[1:3]
+df['term']=df['term'].apply(lambda x: number_getter(x))
+df['term'].nunique()
