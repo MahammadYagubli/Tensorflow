@@ -91,6 +91,10 @@ df['emp_length']=df['emp_length'].replace(to_replace="7 years",value= 7  )
 df['emp_length']=df['emp_length'].replace(to_replace="8 years",value= 8  ) 
 df=df.drop('address', axis=1)
 df['term']=df['term'].astype('int32')
+df['load_repaid'].dtypes
+df['load_repaid']=df['load_repaid'].astype('int32')
+
+from sklearn.model_selection import train_test_split
 X=df.drop('load_repaid', axis=1)
 y=df['load_repaid'].values
 X_train, X_test, y_train, y_test = train_test_split(  X, y, test_size=0.2, random_state=101)
@@ -110,3 +114,17 @@ model.add(Dropout( 0.2))
 model.add(Dense(units=1, activation='sigmoid'))
 model.compile(loss='binary_crossentropy', optimizer='adam')
 model.fit(x=X_train, y=y_train, epochs=25, batch_size=256, validation_data=(X_test, y_test) )
+from tensorflow.keras.models import load_model
+model.save('myfavoritemodelh5')
+loses=pd.DataFrame(model.history.history)
+loses.plot()
+ from  sklearn.metrics import classification_report, confusion_matrix
+    predictions= model.predict(X_test)
+y_test=y_test.round()
+predictions=predictions.round()
+print(classification_report(y_test, predictions)) 
+rndn=np.random.randint(0, len(df)/2)
+customer= scaler.fit_transform(df.drop('load_repaid',axis=1).iloc[rndn].values.reshape(1,75))
+value=model.predict(customer).round()
+print('predicted', value)
+print('actul', df.iloc[rndn]['load_repaid'])
