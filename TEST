@@ -1,0 +1,43 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+x=np.linspace(0,100,500)
+y=np.cos(x)
+plt.plot(x,y)
+df=pd.DataFrame(data=y,index=x, columns=['Sine'])
+test_percent=0.1
+test_point =np.round( len(df) * test_percent )
+test_ind =int( len(df) - test_point )
+test=df.iloc[test_ind:]
+train=df.iloc[:test_ind]
+from sklearn.preprocessing import MinMaxScaler
+scaler=MinMaxScaler()
+scaler.fit(train)
+scaled_train=scaler.transform(train)
+scaled_test=scaler.transform(test)
+from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
+#help(TimeseriesGenerator)
+length=250
+batch_size=1
+#We want to get just next 50 data point and mostly we will be using batch_size=1
+generator=TimeseriesGenerator(scaled_train, scaled_train, length=250, batch_size=1 )
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, SimpleRNN, LSTM
+model=Sequential()
+model.add(LSTM(250,   input_shape=(250,1)))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+model.fit_generator(generator,epochs=6)
+hist=pd.DataFrame(model.history.history)
+hist.plot()
+first_oval_shape=scaled_train[-length:]
+current_batch=first_oval_shape.reshape(1,250,1)
+#model.predict(first_oval_shape)
+test_predictions=[]
+for i in range (len(test)):
+    current_pred=model.predict(current_batch)[0]
+    test_predictions.append(current_pred)
+    current_batch=np.append(current_batch[:,1:,:], [[current_pred]],axis=1)
+true_prediction=scaler.inverse_transform(test_predictions)
+test['predictions']=true_prediction
+test.plot(figsize=(20,8))
