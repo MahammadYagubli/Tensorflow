@@ -1,0 +1,42 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+from sklearn.datasets import make_blobs
+data=make_blobs(n_samples=300, 
+                n_features=2, 
+                centers=2, 
+                cluster_std=1.0, 
+                random_state=101)
+X,y=data
+np.random.seed(seed=101  )
+z_noise=np.random.normal(size=len(X))
+z_noise=pd.Series(z_noise)
+feat=pd.DataFrame(X)
+feat=pd.concat( [feat, z_noise], axis=1)
+feat.columns=['X1','X2','X3']
+plt.scatter(feat[])
+plt.scatter(feat['X1'], feat['X2'], c=y)
+from mpl_toolkits.mplot3d import Axes3D
+%matplotlib notebook
+
+fig=plt.figure()
+ax=fig.add_subplot(111,projection='3d')
+ax.scatter(feat['X1'], feat['X2'], feat['X3'], c=y)
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+from tensorflow.keras.optimizers import SGD
+encoder=Sequential()
+encoder.add(Dense(units=2, activation='relu' , input_shape=[3]))
+decoder=Sequential()
+decoder.add(Dense(units=3, activation ='relu', input_shape=[2]))
+autoencoder=Sequential([encoder, decoder])
+autoencoder.compile(loss='mse', optimizer=SGD(lr=1.5))
+from sklearn.preprocessing import MinMaxScaler
+scaler=MinMaxScaler()
+scaled_date=scaler.fit_transform(feat)
+autoencoder.fit(scaled_date, scaled_date, epochs=5)
+encoded_2_dim=encoder.predict(scaled_date)
+scaled_date.shape
+plt.scatter(encoded_2_dim [:,0], encoded_2_dim[:,1], c=y)
