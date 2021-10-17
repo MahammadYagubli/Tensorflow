@@ -1,0 +1,82 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline 
+#readin data from csv file and declarin the data is Date type
+df=pd.read_csv('IPN31152N.csv',parse_dates=True, index_col='DATE')
+#cganging the name on column
+df['Production']=df['IPN31152N']
+df=df.drop('IPN31152N', axis=1)
+#ploting out the data to see the beauty
+df.plot()
+#decididng how percentage of the data will test or train data 
+#declaring the size of test data 
+test_size=50
+test_index=len(df)-test_size
+train=df.iloc[:test_index]
+test=df.iloc[test_index:]
+from sklearn.preprocessing import MinMaxScaler
+scaler=MinMaxScaler()
+scaler.fit(train)
+scaled_train= scaler.transform(train)
+scaled_test=scaler.transform(test)
+from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
+#mostlyin data objct in one year we have 12 month for each epoch we want to train for 12
+length=12
+generator =TimeseriesGenerator(scaled_train, scaled_train, length=12, batch_size=1)
+X,y=generator[0]
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM
+n_features=1
+model=Sequential()
+model.add(LSTM(100,activation='relu', input_shape=(12,1)))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+from tensorflow.keras.callbacks import EarlyStopping
+early_stop=EarlyStopping(monitor='val_loss', patience=2)
+validation_generator=(TimeseriesGenerator(scaled_test,scaled_test, length=12, batch_size=1 ))
+model.fit_generator( generator=generator,epochs=20, validation_data=validation_generator, callbacks=early_stop )
+losses=pd.DataFrame(model.history.history)
+losses.plot()
+test_predictions=[]
+firstbatch=scaled_train[-length:]
+current_batch=firstbatch.reshape((1,length, 1))
+for i in range(len(test)):
+    current_pred=model.predict(current_batch)[0]
+    #store prediction
+    test_predictions.append(current_pred)
+     #update batch now incluede p[rediction and drop first value]
+    current_batch=np.append(current_batch[:,1:,:], [[current_pred]], axis=1)
+true_prediction=scaler.inverse_transform(test_predictions)
+test['Predictiona']=true_prediction
+test.plot()
+full_scaler=MinMaxScaler()
+scaled_all=full_scaler.fit_transform(df)
+length=12
+generator=TimeseriesGenerator(scaled_all, scaled_all, length=12, batch_size=1)
+model=Sequential()
+model.add(LSTM(100, activation='relu', input_shape=(12,1)  ))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+model.fit_generator(generator, epochs=8)
+forecast=[]
+period=12
+test_prediction=[]
+first_batch=scaled_train[-length:]
+current_batch=first_batch.reshape(1,12,1)
+for i in range(12):
+    current_pred=model.predict(current_batch)[0]
+    forecast.append(current_pred)
+    current_batch=np.append(current_batch[:,1:,:], [[current_pred]], axis=1)
+    
+forecast=scaler.inverse_transform(forecast)
+forecast_index=pd.date_range(start='2021-07-01', periods=12, freq="MS")
+forecast_df=pd.DataFrame(data=forecast, index=forecast_index, columns=['Forecast'])
+forecast_df.plot()
+ax=df.plot()
+forecast_df.plot(ax=ax)
+plt.xlim('2019-07-01','2022-07-01')
+
+
+
+
