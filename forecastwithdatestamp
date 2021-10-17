@@ -1,0 +1,83 @@
+df=pd.read_csv('DATA/RSCCASN.csv', parse_dates=True, index_col='DATE')
+df.info()
+df.columns=['Sales']
+df.plot()
+len(df)
+len(df)-18
+test_size=18
+test_ind=len(df)-test_size
+train=df.iloc[:test_ind]
+test=df.iloc[test_ind:]
+from sklearn.preprocessing import MinMaxScaler
+scaler=MinMaxScaler()
+scaler.fit(train)
+scaled_train=scaler.transform(train)
+scaled_test=scaler.transform(test)
+from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
+len(test)
+length=12
+generator=TimeseriesGenerator(scaled_train, scaled_train, length=length, batch_size=1)
+X,y=generator[0]
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM
+n_features=1
+model=Sequential()
+model.add(LSTM(100, activation='relu', input_shape=(length, n_features)))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+model.summary()
+from tensorflow.keras.callbacks import EarlyStopping
+early_stop=EarlyStopping(monitor='val_loss', patience=2)
+validation_generator=(TimeseriesGenerator(scaled_test, scaled_test, length=length, batch_size=1))
+model.fit_generator(generator, epochs=20, validation_data=validation_generator, callbacks=[early_stop])
+losses=pd.DataFrame(model.history.history)
+losses.plot()
+
+test_predictions=[]
+fisrt_eval_value_batch=scaled_train[-length:]
+current_batch=fisrt_eval_value_batch.reshape((1,length, n_features))
+for i in range(len(test)):
+    #get prediction time stammp ahead[0] fro grabing first number 
+    current_pred=model.predict(current_batch)[0]
+    #store prediction
+    test_predictions.append(current_pred)
+     #update batch now incluede p[rediction and drop first value]
+    current_batch=np.append(current_batch[:,1:,:], [[current_pred]], axis=1)
+true_prediction=scaler.inverse_transform(test_predictions)
+test['Predictions']=true_prediction
+test.plot()
+full_scaler=MinMaxScaler()
+scaled_full_data=full_scaler.fit_transform(df)
+length=12
+generator=TimeseriesGenerator(scaled_full_data, scaled_full_data, length=length, batch_size=1)
+
+model=Sequential()
+model.add(LSTM(100, activation='relu', input_shape=(length, n_features)))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+model.fit_generator(generator, epochs=8)
+
+
+forecast=[]
+period=12
+
+test_predictions=[]
+fisrt_eval_value_batch=scaled_train[-length:]
+current_batch=fisrt_eval_value_batch.reshape((1,length, n_features))
+for i in range(period):
+    #get prediction time stammp ahead[0] fro grabing first number 
+    current_pred=model.predict(current_batch)[0]
+    #store prediction
+    forecast.append(current_pred)
+     #update batch now incluede p[rediction and drop first value]
+    current_batch=np.append(current_batch[:,1:,:], [[current_pred]], axis=1)
+forecast=scaler.inverse_transform(forecast)
+forecast_index=pd.date_range(start='2019-11-01', periods=12, freq="MS")
+
+forecast_index
+forecast_df=pd.DataFrame( data=forecast, index=forecast_index, columns=['Forecast'])
+forecast_df.plot() 
+
+ax=df.plot()
+forecast_df.plot(ax=ax)
+plt.xlim('2018-01-01','2020-12-01')
