@@ -1,0 +1,65 @@
+import tensorflow as tf
+pat_to_file="shakespeare.txt"
+text=open(pat_to_file,'r').read()
+ vocab=sorted(set(test))
+    #for pair in enumerate(vocab):
+#    print(pair)
+char_to_index={char:ind for ind, char in enumerate(vocab)}
+char_to_index['H']
+ind_to_char=np.array(vocab)
+ind_to_char[39]
+encodeed_text=np.array([char_to_index[c] for c in text])
+len(encodeed_text)
+sample=test[:500]
+encoded_text=encodeed_text[:500]
+encoded_text
+#most of the time is it better to check how manylines do we ahve and in each line how manyof the character do we have
+# all isbecaue to get better understanding 
+#we choose 120 for each sentence charcater
+seq_len=120
+total_num_seq=len(text)//(seq_len+1)
+total_num_seq
+char_dataset=tf.data.Dataset.from_tensor_slices(encoded_text)
+type(char_dataset)
+for item in char_dataset.take(500):
+    #we convert the data slive to the indexes
+    #print(ind_to_char[ item.numpy()])
+    print( item.numpy())
+    #we are creating sequence drop remainder mean when we divide 
+#the lenght of the text to the 120 lice we have remaining 0..0003 and it will drop thios data
+sequence=char_dataset.batch(seq_len+1, drop_remainder=True)
+def creaate_seq_target(seq):
+    input_text=seq[:-1] #hello my nam
+    target_txt=seq[1:]  #ello my name 
+    return input_text, target_txt
+dataset=sequence.map(creaate_seq_target)
+for input_text, target_txt in dataset.take(1):
+    print(input_text.numpy())
+    print("".join(ind_to_char[input_text.numpy()]))
+    print('\n')
+    print(target_txt.numpy())
+    print("". join(ind_to_char[target_txt.numpy()]))
+    batch_size=128
+buffer_size=10000
+dataset=dataset.shuffle(buffer_size).batch(batch_size, drop_remainder=True)
+vocab_size=len(vocab)
+embed_dim=64
+rnn_neurons=1026
+from tensorflow.keras.losses import sparse_categorical_crossentropy
+help(sparse_categorical_crossentropy)
+def sparse_cat_loss(y_ture, y_pred):
+    return sparse_categorical_crossentropy(y_true, y_pred, from_logits=True)
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, GRU, LSTM, Dense
+def create_model(vocab_szie, embed_dim, rnn_neurons, batch_size):
+    model=Sequential()
+    model.add(Embedding(vocab_size, embed_dim, batch_input_shape=[batch_size, None]))
+    model.add(GRU(rnn_neurons, return_sequences=True, stateful=True, recurrent_initializer='glorot_uniform'))
+    model.add(Dense(vocab_szie))
+    model.compile('adam', loss=sparse_cat_loss)
+    return model
+model=create_model(vocab_szie=vocab_size, embed_dim=embed_dim, rnn_neurons=rnn_neurons,batch_size=batch_size)
+model.summary()
+dataset.take(1)
+for input_example_batch, target_example_batch in dataset.take(1):
+    example_batch_predictions=model(input_example_batch)
