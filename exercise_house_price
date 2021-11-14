@@ -1,0 +1,50 @@
+import pandas as pd
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+df=pd.read_csv('train.csv')
+df=pd.DataFrame(df)
+dfd=pd.get_dummies(df['POSTED_BY'])
+df=pd.concat([df, dfd], axis=1)
+df=df.drop('POSTED_BY', axis=1)
+
+dfd=pd.get_dummies(df['BHK_OR_RK'])
+df=pd.concat([df, dfd], axis=1)
+df=df.drop('BHK_OR_RK', axis=1)
+
+df=df.drop('ADDRESS', axis=1)
+df=df.drop('LONGITUDE', axis=1)
+df=df.drop('LATITUDE', axis=1)
+df.isnull().sum()
+from sklearn.preprocessing import MinMaxScaler
+scaler=MinMaxScaler()
+from sklearn.model_selection import train_test_split
+X=df.drop('TARGET(PRICE_IN_LACS)', axis=1)
+y=df['TARGET(PRICE_IN_LACS)']
+X_train, X_test, y_train, y_test = train_test_split(  X, y, test_size=0.3, random_state=101)
+X_train=scaler.fit_transform(X_train)
+X_test=scaler.transform(X_test)
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+model= Sequential()
+model.add(Dense(13, activation='relu'))
+model.add(Dense(13, activation='relu'))
+model.add(Dense(13, activation='relu'))
+model.add(Dense(13, activation='relu'))
+model.add(Dense(13, activation='relu'))
+model.add(Dense(13, activation='relu'))
+model.add(Dense(13, activation='relu'))
+model.add(Dense(13, activation='relu'))
+model.add(Dense(1))
+#model.compile(optimizer='adam', loss='mse')
+model.compile(optimizer='rmsprop', loss='mse')
+from tensorflow.keras.callbacks import EarlyStopping
+early_stop=EarlyStopping(patience=10)
+model.fit(x=X_train, y=y_train, validation_data=(X_test, y_test),  batch_size=128, epochs=400, callbacks=early_stop )
+losses=pd.DataFrame(model.history.history)
+losses.plot()
+from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, classification_report, confusion_matrix, accuracy_score
+predictions=model.predict(X_test)
+from sklearn.metrics import accuracy_score, r2_score
+print(r2_score(y_test, predictions))
